@@ -68,7 +68,7 @@
                     <span class="badge rounded-pill @SimulationBadgeClass">@SimulationBadgeText</span>
                 </div>
 
-                <EditForm Model="@request" OnValidSubmit="SubmitAsync">
+                <EditForm Model="@request" OnValidSubmit="SubmitAsync" FormName="simulateScan">
                     <DataAnnotationsValidator />
                     <ValidationSummary />
 
