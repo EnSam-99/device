@@ -29,6 +29,7 @@ public class SerialScannerService : BackgroundService
         {
             _logger.LogWarning("Serial port reader disabled by configuration.");
             _status.SetHardwareAvailable(false);
+            _status.SetFatalError("Serial port reader disabled by configuration.");
             return;
         }
 
@@ -44,6 +45,7 @@ public class SerialScannerService : BackgroundService
                 {
                     port.Open();
                     _status.SetHardwareAvailable(true);
+                    _status.SetFatalError(null);
                     _logger.LogInformation("Serial port {Port} opened for scan reading.", _options.PortName);
                 }
 
@@ -68,6 +70,7 @@ public class SerialScannerService : BackgroundService
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
             {
                 _status.SetHardwareAvailable(false);
+                _status.SetFatalError($"Serial port unavailable: {ex.Message}");
                 _logger.LogError(ex, "Serial port read failed. Will retry after backoff.");
                 port?.Dispose();
                 port = null;

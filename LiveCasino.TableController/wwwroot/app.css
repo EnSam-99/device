@@ -80,6 +80,11 @@ h1:focus {
     background-color: #d63939;
 }
 
+.status-dot.status-error {
+    background-color: #c92a2a;
+    box-shadow: 0 0 0 4px rgba(201, 42, 42, 0.1);
+}
+
 .status-dot.status-unknown {
     background-color: #fd7e14;
 }
