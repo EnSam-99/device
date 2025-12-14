@@ -1,5 +1,6 @@
 using System.Net.Http;
 using Grpc.Core;
+using LiveCasino.TableController.Components;
 using LiveCasino.TableController.Models;
 using LiveCasino.TableController.Protos;
 using LiveCasino.TableController.Services;
