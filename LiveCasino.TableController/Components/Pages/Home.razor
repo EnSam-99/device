@@ -74,12 +74,12 @@
 
                     <div class="mb-3">
                         <label for="payload" class="form-label">Payload</label>
-                        <InputText id="payload" class="form-control" @bind-Value="request.Payload" placeholder="e.g. QR1234-ABCD" required />
+                        <InputText id="payload" class="form-control" @bind-Value="request.Payload" @bind-Value:event="oninput" placeholder="e.g. QR1234-ABCD" required />
                     </div>
 
                     <div class="mb-3">
                         <label for="source" class="form-label">Source label (optional)</label>
-                        <InputText id="source" class="form-control" @bind-Value="request.Source" placeholder="simulated" />
+                        <InputText id="source" class="form-control" @bind-Value="request.Source" @bind-Value:event="oninput" placeholder="simulated" />
                         <div class="form-text">A short description of where this payload came from.</div>
                     </div>
 
