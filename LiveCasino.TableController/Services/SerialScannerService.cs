@@ -67,7 +67,12 @@ public class SerialScannerService : BackgroundService
                     // Expected when no data arrives during ReadTimeout.
                 }
             }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
+            catch (Exception ex) when (
+                ex is IOException ||
+                ex is UnauthorizedAccessException ||
+                ex is InvalidOperationException ||
+                ex is ArgumentException ||
+                ex is PlatformNotSupportedException)
             {
                 _status.SetHardwareAvailable(false);
                 _status.SetFatalError($"Serial port unavailable: {ex.Message}");
