@@ -58,3 +58,28 @@ h1:focus {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
     text-align: start;
 }
+
+.page-heading h1 {
+    font-weight: 700;
+}
+
+.status-dot {
+    display: inline-block;
+    width: 0.75rem;
+    height: 0.75rem;
+    border-radius: 50%;
+    background-color: #adb5bd;
+    box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.03);
+}
+
+.status-dot.status-online {
+    background-color: #2fb344;
+}
+
+.status-dot.status-offline {
+    background-color: #d63939;
+}
+
+.status-dot.status-unknown {
+    background-color: #fd7e14;
+}

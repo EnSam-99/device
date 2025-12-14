@@ -1,7 +1,233 @@
 ﻿@page "/"
 
-<PageTitle>Home</PageTitle>
+@inject HttpClient Http
 
-<h1>Hello, world!</h1>
+<PageTitle>Scanner Simulator</PageTitle>
 
-Welcome to your new app.
+<div class="page-heading mb-4">
+    <h1 class="mb-2">Scanner simulator</h1>
+    <p class="text-muted mb-0">
+        Simulate scans even when the hardware scanner is unavailable and keep an eye on the current device status.
+    </p>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-start justify-content-between mb-3">
+                    <div>
+                        <p class="text-uppercase small fw-semibold text-secondary mb-1">Scanner status</p>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="status-dot @StatusDotClass"></span>
+                            <span class="fw-semibold">@StatusText</span>
+                        </div>
+                    </div>
+                    <button class="btn btn-outline-secondary btn-sm" @onclick="LoadStatusAsync" disabled="@isLoadingStatus">
+                        @if (isLoadingStatus)
+                        {
+                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                        }
+                        <span class="ms-1">@(isLoadingStatus ? "Loading" : "Refresh")</span>
+                    </button>
+                </div>
+
+                @if (isLoadingStatus)
+                {
+                    <p class="text-muted mb-0">Checking device availability...</p>
+                }
+                else if (!string.IsNullOrWhiteSpace(statusError))
+                {
+                    <div class="alert alert-warning mb-0" role="alert">@statusError</div>
+                }
+                else
+                {
+                    <p class="mb-2">@StatusDescription</p>
+                    <p class="text-muted small mb-0">Last checked @LastCheckedText.</p>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-start justify-content-between mb-2">
+                    <div>
+                        <h2 class="h5 mb-1">Simulate a scan</h2>
+                        <p class="text-muted mb-0">Provide the payload your scanner would send to dispatch a mock scan.</p>
+                    </div>
+                    <span class="badge rounded-pill @SimulationBadgeClass">@SimulationBadgeText</span>
+                </div>
+
+                <EditForm Model="@request" OnValidSubmit="SubmitAsync">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary />
+
+                    <div class="mb-3">
+                        <label for="payload" class="form-label">Payload</label>
+                        <InputText id="payload" class="form-control" @bind-Value="request.Payload" placeholder="e.g. QR1234-ABCD" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="source" class="form-label">Source label (optional)</label>
+                        <InputText id="source" class="form-control" @bind-Value="request.Source" placeholder="simulated" />
+                        <div class="form-text">A short description of where this payload came from.</div>
+                    </div>
+
+                    <div class="d-flex align-items-center gap-2">
+                        <button type="submit" class="btn btn-primary" disabled="@isSubmitting">
+                            @if (isSubmitting)
+                            {
+                                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                <span class="ms-2">Sending...</span>
+                            }
+                            else
+                            {
+                                <span class="ms-2">Send simulated scan</span>
+                            }
+                        </button>
+
+                        <button type="button" class="btn btn-outline-secondary" @onclick="ResetForm" disabled="@isSubmitting">
+                            Clear
+                        </button>
+                    </div>
+                </EditForm>
+
+                @if (!string.IsNullOrWhiteSpace(submitMessage))
+                {
+                    <div class="alert alert-success mt-3" role="alert">
+                        <div class="fw-semibold">@submitMessage</div>
+                        @if (lastSimulateResponse is not null)
+                        {
+                            <ul class="mb-0 mt-2 small">
+                                <li><strong>Source:</strong> @lastSimulateResponse.Source</li>
+                                <li><strong>Accepted:</strong> @(lastSimulateResponse.Accepted ? "Yes" : "No")</li>
+                                <li><strong>Mocked:</strong> @(lastSimulateResponse.Mocked ? "Yes" : "No")</li>
+                                @if (!string.IsNullOrWhiteSpace(lastSimulateResponse.Message))
+                                {
+                                    <li><strong>Response:</strong> @lastSimulateResponse.Message</li>
+                                }
+                            </ul>
+                        }
+                    </div>
+                }
+                else if (!string.IsNullOrWhiteSpace(submitError))
+                {
+                    <div class="alert alert-danger mt-3" role="alert">@submitError</div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private SimulatedScanRequest request = new();
+    private bool? hardwareAvailable;
+    private bool isLoadingStatus = true;
+    private bool isSubmitting;
+    private string? statusError;
+    private string? submitMessage;
+    private string? submitError;
+    private DateTimeOffset? lastChecked;
+    private SimulateResponse? lastSimulateResponse;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadStatusAsync();
+    }
+
+    private async Task LoadStatusAsync()
+    {
+        isLoadingStatus = true;
+        statusError = null;
+
+        try
+        {
+            var response = await Http.GetFromJsonAsync<ScannerStatusResponse>("/scanner/status");
+            hardwareAvailable = response?.HardwareAvailable;
+            lastChecked = DateTimeOffset.Now;
+        }
+        catch (Exception ex)
+        {
+            statusError = $"Could not load scanner status. {ex.Message}";
+            hardwareAvailable = null;
+        }
+        finally
+        {
+            isLoadingStatus = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        isSubmitting = true;
+        submitMessage = null;
+        submitError = null;
+
+        try
+        {
+            var httpResponse = await Http.PostAsJsonAsync("/scanner/simulate", request);
+
+            if (httpResponse.IsSuccessStatusCode)
+            {
+                lastSimulateResponse = await httpResponse.Content.ReadFromJsonAsync<SimulateResponse>();
+                submitMessage = lastSimulateResponse?.Message ?? "Scan dispatched.";
+            }
+            else
+            {
+                var error = await httpResponse.Content.ReadFromJsonAsync<ApiError>();
+                submitError = error?.Message ?? "Scan could not be simulated.";
+            }
+        }
+        catch (Exception ex)
+        {
+            submitError = $"Scan could not be simulated. {ex.Message}";
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+    private void ResetForm()
+    {
+        request = new SimulatedScanRequest();
+        submitMessage = null;
+        submitError = null;
+        lastSimulateResponse = null;
+    }
+
+    private string StatusDotClass => hardwareAvailable == true ? "status-online" : hardwareAvailable == false ? "status-offline" : "status-unknown";
+
+    private string StatusText => hardwareAvailable switch
+    {
+        true => "Hardware online",
+        false => "Hardware offline",
+        _ => "Status unknown"
+    };
+
+    private string StatusDescription => hardwareAvailable switch
+    {
+        true => "The physical scanner is connected. Simulated scans will be processed as live events.",
+        false => "The scanner is offline. Mock scans are allowed only if configured on the server.",
+        _ => "The scanner's availability is currently unknown. Try refreshing the status."
+    };
+
+    private string LastCheckedText => lastChecked.HasValue
+        ? lastChecked.Value.ToLocalTime().ToString("MMM d, yyyy h:mm tt")
+        : "—";
+
+    private string SimulationBadgeClass => hardwareAvailable == true ? "text-bg-success" : "text-bg-warning";
+
+    private string SimulationBadgeText => hardwareAvailable == true
+        ? "Live scanner available"
+        : "Using simulated scans";
+
+    private record ScannerStatusResponse(bool HardwareAvailable);
+
+    private record SimulateResponse(bool Accepted, string? Message, string? Source, bool Mocked);
+
+    private record ApiError(string? Message);
+}
