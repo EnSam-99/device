@@ -1,6 +1,7 @@
 ﻿@page "/"
 
 @inject HttpClient Http
+@inject NavigationManager Navigation
 
 <PageTitle>Scanner Simulator</PageTitle>
 
@@ -152,7 +153,7 @@
 
         try
         {
-            var response = await Http.GetFromJsonAsync<ScannerStatusResponse>("/scanner/status");
+            var response = await Http.GetFromJsonAsync<ScannerStatusResponse>(Navigation.ToAbsoluteUri("/scanner/status"));
             hardwareAvailable = response?.HardwareAvailable;
             fatalError = response?.FatalError;
             lastChecked = DateTimeOffset.Now;
@@ -178,7 +179,7 @@
 
         try
         {
-            var httpResponse = await Http.PostAsJsonAsync("/scanner/simulate", request);
+            var httpResponse = await Http.PostAsJsonAsync(Navigation.ToAbsoluteUri("/scanner/simulate"), request);
 
             if (httpResponse.IsSuccessStatusCode)
             {
