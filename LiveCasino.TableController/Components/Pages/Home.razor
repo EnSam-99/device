@@ -68,9 +68,10 @@
                     <span class="badge rounded-pill @SimulationBadgeClass">@SimulationBadgeText</span>
                 </div>
 
-                <EditForm Model="@request" OnValidSubmit="SubmitAsync" FormName="simulateScan">
+                <EditForm Model="@request" OnValidSubmit="SubmitAsync" FormName="@SimulateFormName">
                     <DataAnnotationsValidator />
                     <ValidationSummary />
+                    <AntiforgeryToken FormName="@SimulateFormName" />
 
                     <div class="mb-3">
                         <label for="payload" class="form-label">Payload</label>
@@ -130,6 +131,8 @@
 </div>
 
 @code {
+    private const string SimulateFormName = "simulateScan";
+
     private SimulatedScanRequest request = new();
     private bool? hardwareAvailable;
     private bool isLoadingStatus = true;
