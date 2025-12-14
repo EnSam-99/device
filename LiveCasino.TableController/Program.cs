@@ -74,7 +74,8 @@ namespace LiveCasino.TableController
         {
             app.MapGet("/scanner/status", (ScannerStatus status) => Results.Ok(new
             {
-                hardwareAvailable = status.HardwareAvailable
+                hardwareAvailable = status.HardwareAvailable,
+                fatalError = status.FatalError
             }));
 
             app.MapPost("/scanner/simulate", async (

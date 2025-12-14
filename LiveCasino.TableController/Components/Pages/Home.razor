@@ -42,7 +42,14 @@
                 }
                 else
                 {
-                    <p class="mb-2">@StatusDescription</p>
+                    @if (fatalError is not null)
+                    {
+                        <div class="alert alert-danger mb-2" role="alert">@StatusDescription</div>
+                    }
+                    else
+                    {
+                        <p class="mb-2">@StatusDescription</p>
+                    }
                     <p class="text-muted small mb-0">Last checked @LastCheckedText.</p>
                 }
             </div>
@@ -127,6 +134,7 @@
     private bool isLoadingStatus = true;
     private bool isSubmitting;
     private string? statusError;
+    private string? fatalError;
     private string? submitMessage;
     private string? submitError;
     private DateTimeOffset? lastChecked;
@@ -146,12 +154,14 @@
         {
             var response = await Http.GetFromJsonAsync<ScannerStatusResponse>("/scanner/status");
             hardwareAvailable = response?.HardwareAvailable;
+            fatalError = response?.FatalError;
             lastChecked = DateTimeOffset.Now;
         }
         catch (Exception ex)
         {
             statusError = $"Could not load scanner status. {ex.Message}";
             hardwareAvailable = null;
+            fatalError = null;
         }
         finally
         {
@@ -199,33 +209,65 @@
         lastSimulateResponse = null;
     }
 
-    private string StatusDotClass => hardwareAvailable == true ? "status-online" : hardwareAvailable == false ? "status-offline" : "status-unknown";
+    private string StatusDotClass => fatalError is not null
+        ? "status-error"
+        : hardwareAvailable == true
+            ? "status-online"
+            : hardwareAvailable == false
+                ? "status-offline"
+                : "status-unknown";
 
-    private string StatusText => hardwareAvailable switch
+    private string StatusText
     {
-        true => "Hardware online",
-        false => "Hardware offline",
-        _ => "Status unknown"
-    };
+        get
+        {
+            if (fatalError is not null)
+            {
+                return "Fatal hardware error";
+            }
 
-    private string StatusDescription => hardwareAvailable switch
+            return hardwareAvailable switch
+            {
+                true => "Hardware online",
+                false => "Hardware offline",
+                _ => "Status unknown"
+            };
+        }
+    }
+
+    private string StatusDescription
     {
-        true => "The physical scanner is connected. Simulated scans will be processed as live events.",
-        false => "The scanner is offline. Mock scans are allowed only if configured on the server.",
-        _ => "The scanner's availability is currently unknown. Try refreshing the status."
-    };
+        get
+        {
+            if (fatalError is not null)
+            {
+                return fatalError;
+            }
+
+            return hardwareAvailable switch
+            {
+                true => "The physical scanner is connected. Simulated scans will be processed as live events.",
+                false => "The scanner is offline. Mock scans are allowed only if configured on the server.",
+                _ => "The scanner's availability is currently unknown. Try refreshing the status."
+            };
+        }
+    }
 
     private string LastCheckedText => lastChecked.HasValue
         ? lastChecked.Value.ToLocalTime().ToString("MMM d, yyyy h:mm tt")
         : "—";
 
-    private string SimulationBadgeClass => hardwareAvailable == true ? "text-bg-success" : "text-bg-warning";
+    private string SimulationBadgeClass => fatalError is not null
+        ? "text-bg-danger"
+        : hardwareAvailable == true ? "text-bg-success" : "text-bg-warning";
 
-    private string SimulationBadgeText => hardwareAvailable == true
-        ? "Live scanner available"
-        : "Using simulated scans";
+    private string SimulationBadgeText => fatalError is not null
+        ? "Hardware unavailable"
+        : hardwareAvailable == true
+            ? "Live scanner available"
+            : "Using simulated scans";
 
-    private record ScannerStatusResponse(bool HardwareAvailable);
+    private record ScannerStatusResponse(bool HardwareAvailable, string? FatalError);
 
     private record SimulateResponse(bool Accepted, string? Message, string? Source, bool Mocked);
 
