@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+option csharp_namespace = "LiveCasino.TableController.Protos";
+
+package livecasino.tablecontroller;
+
+service ScannerBackend {
+  rpc SubmitScan (ScanRequest) returns (ScanResponse);
+}
+
+message ScanRequest {
+  string table_id = 1;
+  string payload = 2;
+  string source = 3;
+  int64 captured_at_unix = 4;
+}
+
+message ScanResponse {
+  bool accepted = 1;
+  string message = 2;
+}
